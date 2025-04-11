@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load dict_filters %}
+{% load format_filters %}
+
+
+{% block title %}داشبورد{% endblock %}
+
+{% block content %}
+
+<h4 class="mb-4 text-center">👋 خوش آمدی {{ request.user.username }}</h4>
+
+<div class="row g-4">
+
+    <!-- ✅ ستون راست: لیست موجودی سنگ‌ها -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-body">
+                <h5 class="mb-3">📦 موجودی سنگ‌ها</h5>
+                <ul class="list-group small" style="max-height: 250px; overflow-y: auto;">
+                    {% for stone in stones %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ stone.name }}
+                            <span class="badge bg-secondary">{{ stone.stock_box|smart_round }} کارتن</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted">هیچ سنگی ثبت نشده است.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ ستون چپ: دکمه‌های اصلی داشبورد -->
+    <div class="col-lg-8">
+        <div class="row g-3">
+
+            <!-- دکمه‌ها: دوتا در هر ردیف -->
+            <div class="col-md-6">
+                <a href="{% url 'invoices' %}" class="btn btn-outline-primary w-100 py-4 rounded-4">🧾 فاکتور فروش</a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'customers' %}" class="btn btn-outline-success w-100 py-4 rounded-4">👤 مشتری‌ها</a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'expenses' %}" class="btn btn-outline-danger w-100 py-4 rounded-4">💰 هزینه‌ها</a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'inventory' %}" class="btn btn-outline-warning w-100 py-4 rounded-4">🏬 انبار</a>
+            </div>
+
+            <!-- دکمه بزرگ در انتها -->
+            <div class="col-12">
+                <a href="{% url 'financial' %}" class="btn btn-outline-info w-100 py-4 rounded-4">
+                    📊 گزارش مالی
+                </a>
+            </div>
+            
+            <div class="col-12">
+                <a href="{% url 'download_backup' %}" class="btn btn-outline-dark w-100 py-4 rounded-4">
+                    📥 دانلود بکاپ دیتابیس
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ✅ پایین صفحه: جدول فاکتورهای اخیر -->
+    <div class="col-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-body">
+                <h5 class="mb-3">🧾 آخرین فاکتورهای فروش</h5>
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="table table-bordered table-hover table-sm align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>تاریخ</th>
+                                <th>مشتری</th>
+                                <th>طرح</th>
+                                <th>قواره</th>
+                                <th>جمع کل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in latest_invoices %}
+                                <tr>
+                                    <td>{{ invoice.date }}</td>
+                                    <td>{{ invoice.customer.name }}</td>
+                                    <td>{{ invoice.design.title }}</td>
+                                    <td>{{ invoice.quantity }}</td>
+                                    <td>{{ invoice.total_price|comma }} تومان</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">هنوز فاکتوری ثبت نشده است.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

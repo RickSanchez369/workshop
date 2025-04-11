@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize dict_filters %}
+{% load jalali_filters %}
+
+{% block title %}مدیریت مشتری‌ها{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4">👤 مدیریت مشتری‌ها</h4>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <!-- دکمه افزودن -->
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+            ➕ افزودن مشتری
+        </button>
+
+        <!-- فرم جستجو -->
+        <form method="get" class="d-flex" role="search">
+            <input type="text" name="q" class="form-control me-2" placeholder="جستجو براساس نام"
+                   value="{{ request.GET.q }}">
+            <button class="btn btn-outline-secondary" type="submit">جستجو</button>
+        </form>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>نام</th>
+                    <th>شماره</th>
+                    <th>مجموع</th>
+                    <th>پرداخت</th>
+                    <th>بدهی</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in customer_data %}
+                    <tr>
+                        <td>
+                            {{ item.customer.name }}
+                            <button class="btn btn-sm btn-link" data-bs-toggle="collapse" data-bs-target="#details{{ item.customer.id }}">
+                                📋
+                            </button>
+                        </td>
+                        <td>{{ item.customer.phone }}</td>
+                        <td>{{ item.total_invoice|comma }}</td>
+                        <td>{{ item.total_paid|comma }}</td>
+                        <td>{{ item.total_debt|comma }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCustomerModal{{ item.customer.id }}">✏️</button>
+                            <button class="btn btn-sm btn-outline-success"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#paymentCustomerModal{{ item.customer.id }}">💵</button>
+                        </td>
+                    </tr>
+            
+                    <!-- جزئیات فاکتورها -->
+                    <tr class="collapse bg-light" id="details{{ item.customer.id }}">
+                        <td colspan="6">
+                            {% with invoices=invoices_by_customer|dict_get:item.customer.id %}
+                                {% if invoices %}
+                                    <div style="max-height: 250px; overflow-y: auto;">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead class="table-light">
+                                                <tr class="small text-center">
+                                                    <th>تاریخ</th>
+                                                    <th>شماره</th>
+                                                    <th>طرح</th>
+                                                    <th>تعداد</th>
+                                                    <th>مبلغ</th>
+                                                    <th>بدهی</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for invoice in invoices %}
+                                                    <tr class="small text-center">
+                                                        <td>{{ invoice.date }}</td>
+                                                        <td>{{ invoice.invoice_number }}</td>
+                                                        <td>{{ invoice.design.title }}</td>
+                                                        <td>{{ invoice.quantity }}</td>
+                                                        <td>{{ invoice.total_price|comma }}</td>
+                                                        <td>{{ invoice.remaining_debt|comma }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-muted small">فاکتوری ثبت نشده است.</div>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">هیچ مشتری‌ای ثبت نشده است.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>    
+        </table>
+    </div>
+    
+    <!-- Modal افزودن مشتری -->
+    <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_customer" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title">➕ افزودن مشتری جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">شماره تماس</label>
+                        <input type="text" name="phone" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">آدرس</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ذخیره</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal ویرایش مشتری -->
+    {% for customer in customers %}
+    <div class="modal fade" id="editCustomerModal{{ customer.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="edit_customer" value="1">
+                <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">✏️ ویرایش {{ customer.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام</label>
+                        <input type="text" name="name" value="{{ customer.name }}" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">شماره تماس</label>
+                        <input type="text" name="phone" value="{{ customer.phone }}" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">آدرس</label>
+                        <textarea name="address" class="form-control" rows="2">{{ customer.address }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">ذخیره تغییرات</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Modal پرداخت بدهی -->
+    {% for item in customer_data %}
+    {% with customer=item.customer debt=item.total_debt %}
+    <div class="modal fade" id="paymentCustomerModal{{ customer.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_payment" value="1">
+                <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">💵 ثبت پرداخت - {{ customer.name }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label">مبلغ پرداختی (تومان)</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="settleCustomer({{ debt }}, this)">
+                            🔁 تسویه حساب کامل
+                        </button>
+                        <input type="text" class="form-control formatted-amount" placeholder="مثلاً 1,200,000" required>
+                        <input type="hidden" name="payment_amount" class="raw-amount" data-max="{{ debt }}">
+                    </div> 
+    
+                    <div id="overpayWarning{{ customer.id }}" class="alert alert-warning mt-2 d-none">
+                        ⚠️ مبلغ پرداختی بیشتر از بدهی مشتری است!
+                    </div>
+                    
+                    <!-- 🔻 فیلد انتخاب دریافت‌کننده وجه -->
+                    <div class="mb-3">
+                        <label class="form-label">دریافت‌کننده</label>
+                        <select class="form-select" name="received_by" required>
+                        {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="date" class="form-label">تاریخ پرداخت</label>
+                        <input type="text" name="date" class="form-control jalali-datepicker" required>
+                    </div>
+                    
+                    <p class="text-muted">بدهی فعلی: {{ debt|comma }} تومان</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">ثبت پرداخت</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+    
+</div> <!-- پایان container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function settleCustomer(debt, button) {
+        const modal = button.closest('.modal');
+        const inputFormatted = modal.querySelector('.formatted-amount');
+        const inputRaw = modal.querySelector('.raw-amount');
+        const warning = modal.querySelector('[id^=overpayWarning]');
+    
+        inputFormatted.value = debt.toLocaleString();
+        inputRaw.value = debt;
+        warning.classList.add("d-none");
+    }
+    
+    document.querySelectorAll('.formatted-amount').forEach(el => {
+        el.addEventListener('input', function () {
+            const rawInput = el.value.replace(/,/g, '').replace(/[^\d]/g, '');
+            const modal = el.closest('.modal');
+            const inputHidden = modal.querySelector('.raw-amount');
+            const warning = modal.querySelector('[id^=overpayWarning]');
+            const max = parseInt(inputHidden.dataset.max || "0");
+    
+            el.value = rawInput.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            inputHidden.value = rawInput;
+    
+            if (parseInt(rawInput) > max) {
+                warning.classList.remove("d-none");
+            } else {
+                warning.classList.add("d-none");
+            }
+        });
+    });
+</script>
+    
+{% endblock extra_js %}
+

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load dict_filters %}
+{% load jalali_filters %}
+
+{% block title %}مدیریت هزینه‌ها{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4">💰 مدیریت هزینه‌ها</h4>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <!-- دکمه افزودن هزینه جدید -->
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+            ➕ هزینه جدید
+        </button>
+
+        <!-- فیلتر بر اساس بازه تاریخ -->
+        <form method="get" class="d-flex align-items-center gap-2">
+            <span class="mx-1">از</span>
+            <input type="text" name="start_date" class="form-control jalali-datepicker" required
+                    value="{{ request.GET.start_date }}">
+            <span class="mx-1">تا</span>
+            <input type="text" name="end_date" class="form-control jalali-datepicker" required
+                    value="{{ request.GET.end_date }}">
+            <button class="btn btn-outline-secondary" type="submit">فیلتر</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm rounded-4">
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>کاربر</th>
+                        <th>مبلغ (تومان)</th>
+                        <th>توضیح</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date }}</td>
+                            <td>{{ expense.user.username }}</td>
+                            <td>{{ expense.amount|default:0|comma }}</td>
+                            <td>{{ expense.note|default:"—" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-muted">هیچ هزینه‌ای ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ✅ Modal افزودن هزینه جدید -->
+    <div class="modal fade" id="addExpenseModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_expense" value="1">
+
+                <!-- 🔹 سربرگ modal -->
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">➕ ثبت هزینه جدید</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+
+                <!-- 🔸 بدنه فرم -->
+                <div class="modal-body row g-3">
+
+                    <!-- تاریخ هزینه -->
+                    <div class="col-md-6">
+                        <label class="form-label">تاریخ هزینه</label>
+                        <input type="text" name="date" class="form-control jalali-datepicker" required>
+                    </div>
+
+                    <!-- انتخاب کاربر -->
+                    <div class="col-md-6">
+                        <label class="form-label">ثبت‌کننده</label>
+                        <select name="user" class="form-select" required>
+                            <option value="">-- انتخاب کاربر --</option>
+                            {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+
+                    <!-- مبلغ هزینه -->
+                    <div class="col-md-6">
+                        <label class="form-label">مبلغ (تومان)</label>
+                        <input type="text" name="amount" class="form-control" required value="0" oninput="formatInputNumber(this)">
+                    </div>
+
+                    <!-- توضیح اضافی -->
+                    <div class="col-md-6">
+                        <label class="form-label">توضیح (اختیاری)</label>
+                        <textarea name="note" rows="2" class="form-control"></textarea>
+                    </div>
+
+                </div>
+
+                <!-- 🔹 دکمه‌های پایین modal -->
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ثبت هزینه</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div> <!-- پایان container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function formatInputNumber(input) {
+        // حذف هر چیزی جز عدد
+        let raw = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
+        input.value = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+</script>
+    
+{% endblock extra_js %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% load humanize dict_filters %}
+
+{% block title %}مدیریت انبار{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4">🏬 مدیریت انبار سنگ و طرح</h4>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card mb-4 shadow-sm rounded-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>📦 موجودی سنگ‌ها</strong>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addStoneModal">
+                ➕ سنگ جدید
+            </button>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>نام سنگ</th>
+                        <th>قیمت هر کارتن (دلار)</th>
+                        <th>موجودی (کارتن)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stone in stones %}
+                        <tr>
+                            <td>{{ stone.name }}</td>
+                            <td>{{ stone.price_per_box_usd }}</td>
+                            <td>{{ stone.stock_box }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-muted">هیچ سنگی ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm rounded-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>🎨 لیست طرح‌ها</strong>
+            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addDesignModal">
+                ➕ طرح جدید
+            </button>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>عنوان طرح</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for design in designs %}
+                        <tr>
+                            <td>{{ design.title }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td class="text-muted">هیچ طرحی ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="text-end mb-4">
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+            ➕ ثبت تراکنش سنگ (خرید / مصرف)
+        </button>
+    </div>
+    
+
+    <!-- Modal افزودن سنگ جدید -->
+    <div class="modal fade" id="addStoneModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_stone" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title">➕ افزودن سنگ جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نام سنگ</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">قیمت هر کارتن (دلار)</label>
+                        <input type="number" name="price_per_box_usd" step="0.01" min="0" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">ذخیره</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal افزودن طرح جدید -->
+    <div class="modal fade" id="addDesignModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_design" value="1">
+                <div class="modal-header">
+                    <h5 class="modal-title">➕ افزودن طرح جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">عنوان طرح</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">ذخیره</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal ثبت تراکنش سنگ -->
+    <div class="modal fade" id="addTransactionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" class="modal-content">
+                {% csrf_token %}
+                <input type="hidden" name="add_transaction" value="1">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">🔁 ثبت تراکنش سنگ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">نوع سنگ</label>
+                        <select name="stone" class="form-select" required>
+                            <option value="">-- انتخاب سنگ --</option>
+                            {% for s in stones %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">تاریخ</label>
+                        <input type="text" name="date" class="form-control jalali-datepicker" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">مقدار (کارتن)</label>
+                        <input type="number" name="quantity_box" step="0.01" min="0.01" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">نوع تراکنش</label>
+                        <select name="type" class="form-select" required>
+                            <option value="buy">خرید</option>
+                            <option value="consume">مصرف</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning">ثبت تراکنش</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4 shadow-sm rounded-4">
+        <div class="card-header">
+            <strong>🧾 آخرین تراکنش‌های سنگ</strong>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>سنگ</th>
+                        <th>نوع تراکنش</th>
+                        <th>مقدار (کارتن)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                        <tr>
+                            <td>{{ t.date }}</td>
+                            <td>{{ t.stone.name }}</td>
+                            <td>
+                                {% if t.type == 'buy' %}
+                                    <span class="badge bg-success">خرید</span>
+                                {% elif t.type == 'consume' %}
+                                    <span class="badge bg-danger">مصرف</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ t.quantity_box }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-muted">تراکنشی ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div> <!-- پایان container -->
+{% endblock %}

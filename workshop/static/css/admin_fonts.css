@@ -1,0 +1,40 @@
+
+@font-face {
+  font-family: 'Vazir';
+  src: url('/static/fonts/Vazirmatn-FD-NL-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body, html, * {
+  font-family: 'Vazir', Tahoma, sans-serif !important;
+}
+
+/* ✅ انتقال سایدبار به راست با عرض بیشتر */
+.main-sidebar,
+.nav-sidebar {
+  right: 0 !important;
+  left: auto !important;
+  width: 300px !important;
+  background-color: #343a40 !important;
+  overflow-x: hidden !important;
+}
+
+/* ✅ انتقال محتوای اصلی به چپ */
+.content-wrapper {
+  margin-right: 300px !important;
+  margin-left: 0 !important;
+  transition: all 0.3s ease-in-out;
+}
+
+/* ✅ راست‌چین کردن لینک‌ها در سایدبار */
+.brand-link,
+.nav-link {
+  text-align: right !important;
+  padding-right: 20px !important;
+}
+
+/* ✅ کل بدنه راست‌چین */
+body {
+  direction: rtl;
+}
