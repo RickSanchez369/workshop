@@ -32,8 +32,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-fallback-key-for-dev")
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = os.getenv("DEBUG", "False") == "True"
 #ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-DEBUG = True
-ALLOWED_HOSTS = []
+DEBUG = False
+
+ALLOWED_HOSTS = ['hesab-karga.ir', 'www.hesab-karga.ir']
 # Application definition
 
 INSTALLED_APPS = [
@@ -99,7 +100,7 @@ DATABASES = {
 #                'NAME': 'your_db_name',
 #                'USER': 'hesabkar_jef',
 #                'PASSWORD': 'your_password',
-#                'HOST': '127.0.0.1',
+#                'HOST': 'localhost',
 #                'PORT': '5432',
 #            }
 #        }
