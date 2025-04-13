@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load dict_filters %}
+
+{% block title %}آمار کاربران{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4 text-center">👥 آمار فروش و هزینه کاربران</h4>
+
+    <!-- ✅ فرم فیلتر بازه زمانی -->
+    <!-- فیلتر بر اساس بازه تاریخ -->
+    <form method="get" class="d-flex align-items-center gap-2">
+        <span class="mx-1">از</span>
+        <input type="text" name="start_date" class="form-control jalali-datepicker" required
+                value="{{ request.GET.start_date }}">
+        <span class="mx-1">تا</span>
+        <input type="text" name="end_date" class="form-control jalali-datepicker" required
+                value="{{ request.GET.end_date }}">
+        <button class="btn btn-outline-secondary" type="submit">فیلتر</button>
+    </form>
+
+    <!-- ✅ جدول آمار کلی کاربران -->
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>کاربر</th>
+                    <th>💰 دریافتی خالص</th>  <!-- ✅ تغییر متن ستون -->
+                    <th>مجموع هزینه</th>
+                    <th>تعداد چک</th>  <!-- ✅ تغییر عنوان ستون -->
+                    <th>جزییات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in user_data %}
+                    <tr>
+                        <td>{{ item.user.username }}</td>
+                        <td class="text-success fw-bold">{{ item.net_received|comma }} تومان</td>  <!-- ✅ تغییر داده -->
+                        <td class="text-danger fw-bold">{{ item.total_expenses|comma }} تومان</td>
+                        <td>{{ item.check_count }}</td>  <!-- ✅ تعداد چک‌ها -->
+                        <td>
+                            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="collapse" data-bs-target="#details{{ item.user.id }}">
+                                👁️ مشاهده
+                            </button>
+                        </td>
+                    </tr>
+
+
+                    <!-- ✅ جداول جزئیات هر کاربر -->
+                    <tr class="collapse bg-light" id="details{{ item.user.id }}">
+                        <td colspan="5">
+                            <div class="row g-3">
+                                <!-- 🔹 فاکتورهای فروش -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header">🧾 فاکتورهای فروش</div>
+                                        <div class="card-body table-responsive">
+                                            <table class="table table-sm table-bordered text-center align-middle">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>تاریخ</th>
+                                                        <th>مشتری</th>
+                                                        <th>جمع کل</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for invoice in item.invoices %}
+                                                        <tr>
+                                                            <td>{{ invoice.date }}</td>
+                                                            <td>{{ invoice.customer.name }}</td>
+                                                            <td>{{ invoice.total_price|comma }}</td>
+                                                        </tr>
+                                                    {% empty %}
+                                                        <tr><td colspan="3" class="text-muted">ندارد</td></tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 🔹 هزینه‌ها -->
+                                <div class="col-md-6">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-header">💰 هزینه‌های ثبت‌شده</div>
+                                        <div class="card-body table-responsive">
+                                            <table class="table table-sm table-bordered text-center align-middle">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>تاریخ</th>
+                                                        <th>دلیل</th>
+                                                        <th>مبلغ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for expense in item.expenses %}
+                                                        <tr>
+                                                            <td>{{ expense.date }}</td>
+                                                            <td>{{ expense.reason }}</td>
+                                                            <td>{{ expense.amount|comma }}</td>
+                                                        </tr>
+                                                    {% empty %}
+                                                        <tr><td colspan="3" class="text-muted">ندارد</td></tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 🔹 لیست چک‌ها -->
+                                {% if item.check_count > 0 %}
+                                <div class="col-12">
+                                    <div class="card shadow-sm mt-3">
+                                        <div class="card-header bg-warning text-dark">📄 چک‌های ثبت‌شده</div>
+                                        <div class="card-body">
+                                            <ul class="list-group">
+                                                {% for ch in item.checks %}
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>تاریخ: {{ ch.date }}</span>
+                                                    <span>توضیح: {{ ch.note }}</span>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-muted">هیچ کاربری یافت نشد.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

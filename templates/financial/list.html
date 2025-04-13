@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load humanize dict_filters %}  <!-- برای جداکننده هزارگان -->
+
+
+{% block title %}📊 گزارش مالی{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4">📊 گزارش مالی</h4>
+
+    <!-- ✅ نمایش پیام موفقیت (در صورت وجود) -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ✅ فرم انتخاب بازه تاریخ و نرخ دلار -->
+    <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+            <form method="POST" class="row g-3 align-items-end">
+                {% csrf_token %}
+
+                <!-- بازه تاریخ -->
+                <div class="col-md-4">
+                    <label class="form-label">از تاریخ</label>
+                    <input type="text" name="start_date" class="form-control jalali-datepicker" required
+                            value="{{ request.POST.start_date }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">تا تاریخ</label>
+                    <input type="text" name="end_date" class="form-control jalali-datepicker" required
+                            value="{{ request.POST.end_date }}">
+                </div>
+
+                <!-- نرخ دلار -->
+                <div class="col-md-3">
+                    <label class="form-label">نرخ دلار (تومان)</label>
+                    <input type="text" id="usd_rate_display" class="form-control" placeholder="مثلاً 52,300" required>
+                    <input type="hidden" name="usd_rate" id="usd_rate_real">
+
+                </div>
+
+                <div class="col-md-1 d-grid">
+                    <button type="submit" class="btn btn-primary">📊 مشاهده</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ✅ نمایش خلاصه گزارش فقط اگر report وجود دارد -->
+    {% if report %}
+        <!-- 📈 خلاصه گزارش مالی با استایل ترکیبی دکمه‌ها -->
+        <div class="bg-white rounded-3 shadow p-4 mb-5">
+            <h4 class="text-center fw-bold mb-4">📈 خلاصه گزارش مالی</h4>
+
+            <div class="row text-center fs-5">
+                <!-- قواره -->
+                <div class="col-md-3 mb-3">
+                    <div class="py-3 rounded-3 border btn-outline-secondary shadow-sm">
+                        مجموع قواره‌های فروخته‌شده<br>
+                        <strong class="text-dark">{{ report.total_pieces_sold|comma }}</strong>
+                    </div>
+                </div>
+                <!-- فروش -->
+                <div class="col-md-3 mb-3">
+                    <div class="py-3 rounded-3 border btn-outline-success shadow-sm">
+                        جمع کل فاکتورهای فروش<br>
+                        <strong class="text-success">{{ report.total_sales_amount|comma }} تومان</strong>
+                    </div>
+                </div>
+                <!-- هزینه سنگ -->
+                <div class="col-md-3 mb-3">
+                    <div class="py-3 rounded-3 border btn-outline-warning shadow-sm">
+                        جمع هزینه سنگ<br>
+                        <strong class="text-warning">{{ report.total_stone_cost|comma }} تومان</strong>
+                    </div>
+                </div>
+                <!-- سایر هزینه‌ها -->
+                <div class="col-md-3 mb-3">
+                    <div class="py-3 rounded-3 border btn-outline-danger shadow-sm">
+                        جمع سایر هزینه‌ها<br>
+                        <strong class="text-danger">{{ report.total_expenses|comma }} تومان</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- سود خالص -->
+            <div class="text-center mt-4 fs-4">
+                <span class="text-success fw-bold">💰 سود خالص:</span>
+                <strong class="text-success">{{ report.net_profit|comma }} تومان</strong>
+            </div>
+            <!-- نمایش دریافتی و بدهی -->
+            <div class="row text-center fs-5 mt-4">
+                <div class="col-md-6">
+                    <div class="py-3 rounded-3 border btn-outline-primary shadow-sm">
+                        💵 مجموع دریافتی‌ها (فاکتور + پرداخت دستی)<br>
+                        <strong class="text-primary">{{ total_received|comma }} تومان</strong>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="py-3 rounded-3 border btn-outline-danger shadow-sm">
+                        💸 مجموع بدهی‌های پرداخت‌نشده<br>
+                        <strong class="text-danger">{{ total_unpaid|comma }} تومان</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if report %}
+    <!-- 🧾 لیست مشتری‌هایی که در بازه فاکتور دارند -->
+    <h5 class="mb-3">🧾 مشتریان دارای فاکتور در بازه زمانی</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>مشتری</th>
+                    <th>مجموع قواره‌ها</th>
+                    <th>پرداختی</th>
+                    <th>بدهی</th>
+                    <th>جزئیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cid, data in customers_data.items %}
+                <tr>
+                    <td>{{ data.name }}</td>
+                    <td>{{ data.total_quantity|comma }}</td>
+                    <td>{{ data.total_paid|comma }}</td>
+                    <td>{{ data.total_debt|comma }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#inv{{ cid }}">
+                            📋 مشاهده
+                        </button>
+                    </td>
+                </tr>
+                <tr class="collapse bg-light" id="inv{{ cid }}">
+                    <td colspan="5">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>تاریخ</th>
+                                        <th>شماره فاکتور</th>
+                                        <th>تعداد</th>
+                                        <th>مبلغ</th>
+                                        <th>پرداختی</th>
+                                        <th>بدهی</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inv in data.invoices %}
+                                    <tr>
+                                        <td>{{ inv.date }}</td>
+                                        <td>{{ inv.invoice_number }}</td>
+                                        <td>{{ inv.quantity }}</td>
+                                        <td>{{ inv.total_price|comma }}</td>
+                                        <td>{{ inv.amount_paid|comma }}</td>
+                                        <td>{{ inv.remaining_debt|comma }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ✅ جدول هزینه‌های انجام‌شده در بازه -->
+    <div class="card shadow-sm rounded-4 mb-4">
+        <div class="card-header">
+            <strong>💰 هزینه‌های انجام‌شده</strong>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>کاربر</th>
+                        <th>مبلغ</th>
+                        <th>بابت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date }}</td>
+                            <td>{{ expense.user.username }}</td>
+                            <td>{{ expense.amount|comma }}</td>
+                            <td>{{ expense.note }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-muted">هزینه‌ای در این بازه ثبت نشده است.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 👥 عملکرد کاربران در بازه گزارش مالی -->
+    <h5 class="mt-5 mb-3">👥 عملکرد کاربران</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>نام کاربر</th>
+                    <th>💰 مجموع دریافتی</th>
+                    <th>💸 مجموع بدهی</th>
+                    <th>📄 تعداد چک</th>
+                    <th>📋 جزییات چک‌ها</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for uid, user in users_data.items %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td class="text-success fw-bold">{{ user.net_received|comma }} تومان</td>
+                    <td class="text-danger">{{ user.total_debt|comma }} تومان</td>
+                    <td>{{ user.check_count }}</td>
+                    <td>
+                        {% if user.check_count > 0 %}
+                        <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#userChecks{{ uid }}">
+                            👁️ مشاهده
+                        </button>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                {% if user.check_count > 0 %}
+                <tr class="collapse bg-light" id="userChecks{{ uid }}">
+                    <td colspan="5">
+                        <ul class="list-group text-start">
+                            {% for check in user.checks %}
+                            <li class="list-group-item">
+                                📅 <strong>تاریخ سررسید:</strong> {{ check.date }}<br>
+                                📝 <strong>توضیح:</strong> {{ check.note }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ✅ دکمه ساده برای چاپ صفحه -->
+    <div class="text-center mt-4">
+        <a href="{% url 'financial_export' %}" class="btn btn-primary btn-lg">
+            📄 چاپ گزارش Word
+        </a>
+    </div>    
+{% endif %}
+
+</div> <!-- پایان container -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const display = document.getElementById('usd_rate_display');
+        const real = document.getElementById('usd_rate_real');
+    
+        function syncUsdRate() {
+            const raw = display.value.replace(/,/g, '');
+            if (!isNaN(raw) && raw !== '') {
+                display.value = Number(raw).toLocaleString('en-US');
+                real.value = raw;
+            } else {
+                real.value = '';
+            }
+        }
+    
+        // 📌 اجرا در شروع صفحه (برای مقادیر پیش‌فرض)
+        syncUsdRate();
+    
+        // 📌 اجرا در زمان تایپ
+        display.addEventListener('input', syncUsdRate);
+    });
+</script>    
+{% endblock %}
+

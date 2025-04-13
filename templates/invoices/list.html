@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% load humanize dict_filters %}
+
+{% block title %}فاکتورهای فروش{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4 class="mb-4">🧾 مدیریت فاکتورهای فروش</h4>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <!-- دکمه افزودن فاکتور -->
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInvoiceModal">
+            ➕ فاکتور جدید
+        </button>
+
+        <!-- فرم جستجو -->
+        <form method="get" class="d-flex" role="search">
+            <input type="text" name="q" class="form-control me-2" placeholder="جستجوی مشتری یا شماره فاکتور"
+                   value="{{ request.GET.q }}">
+            <button class="btn btn-outline-secondary" type="submit">جستجو</button>
+        </form>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>تاریخ</th>
+                    <th>شماره</th>
+                    <th>مشتری</th>
+                    <th>طرح</th>
+                    <th>سنگ</th>
+                    <th>تعداد</th>
+                    <th>قیمت کل</th>
+                    <th>پرداختی</th>
+                    <th>باقی‌مانده</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                    <tr>
+                        <td>{{ invoice.date }}</td>
+                        <td>{{ invoice.invoice_number }}</td>
+                        <td>{{ invoice.customer.name }}</td>
+                        <td>{{ invoice.design.title }}</td>
+                        <td>{{ invoice.stone.name }}</td>
+                        <td>{{ invoice.quantity }}</td>
+                        <td>{{ invoice.total_price|comma }}</td>
+                        <td>{{ invoice.amount_paid|comma }}</td>
+                        <td>{{ invoice.remaining_debt|comma }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-muted text-center">فاکتوری ثبت نشده است.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div> <!-- پایان container -->
+
+<!-- Modal ثبت فاکتور جدید -->
+<div class="modal fade" id="addInvoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form method="POST" class="modal-content">
+            {% csrf_token %}
+            <input type="hidden" name="add_invoice" value="1">
+
+            <div class="modal-header">
+                <h5 class="modal-title">➕ ثبت فاکتور فروش جدید</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+            </div>
+
+            <div class="modal-body row g-3">
+
+                <!-- تاریخ فاکتور -->
+                <div class="col-md-6">
+                    <label class="form-label">تاریخ فاکتور</label>
+                    <input type="text" name="date" class="form-control jalali-datepicker" required>
+                </div>
+
+                <!-- صادرکننده -->
+                <div class="col-md-6">
+                    <label class="form-label">صادرکننده</label>
+                    <select name="issuer" class="form-select" required>
+                        <option value="">-- انتخاب کاربر --</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- مشتری -->
+                <div class="col-md-6">
+                    <label class="form-label">مشتری</label>
+                    <!-- 🔹 دکمه افزودن مشتری جدید -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">مشتری</label>
+                            <button type="button" class="btn btn-sm btn-outline-success"
+                                    data-bs-toggle="collapse" data-bs-target="#newCustomerForm">
+                                ➕ مشتری جدید
+                            </button>
+                    </div>
+                    <select name="customer" class="form-select" required>
+                        <option value="">-- انتخاب مشتری --</option>
+                        {% for c in customers %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- 🔹 فرم افزودن مشتری جدید -->
+                    <div class="collapse mb-3" id="newCustomerForm">
+                        <div class="card card-body bg-light border">
+                            <h6 class="mb-3">افزودن مشتری جدید</h6>
+
+                            <div class="mb-2">
+                                <input type="text" name="new_customer_name" class="form-control" placeholder="نام مشتری">
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" name="new_customer_phone" class="form-control" placeholder="شماره تماس">
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" name="new_customer_address" class="form-control" placeholder="آدرس">
+                            </div>
+
+                            <div class="form-text text-muted">پس از ذخیره، مشتری جدید به لیست اضافه می‌شود.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- طرح -->
+                <div class="col-md-6">
+                    <label class="form-label">طرح</label>
+                    <select name="design" class="form-select" required>
+                        <option value="">-- انتخاب طرح --</option>
+                        {% for d in designs %}
+                            <option value="{{ d.id }}">{{ d.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- سنگ -->
+                <div class="col-md-6">
+                    <label class="form-label">نوع سنگ</label>
+                    <select name="stone" class="form-select" required>
+                        <option value="">-- انتخاب سنگ --</option>
+                        {% for s in stones %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- قیمت قواره -->
+                <div class="col-md-6">
+                    <label class="form-label">قیمت هر قواره (تومان)</label>
+                    <input type="text" name="design_price_per_piece" class="form-control" min="0" required oninput="formatInputNumber(this)">
+                </div>
+
+                <!-- تعداد -->
+                <div class="col-md-4">
+                    <label class="form-label">تعداد قواره</label>
+                    <input type="number" name="quantity" class="form-control" min="1" required>
+
+                    <!-- ✅ نمایش خودکار جمع کل قبل از تخفیف -->
+                    <div class="form-text text-end mt-1 mb-3">
+                        <strong>جمع کل (بدون تخفیف):</strong>
+                        <span id="calculatedTotal" class="text-primary fw-bold">۰</span> تومان
+                    </div>
+                </div>
+
+                <!-- تخفیف -->
+                <div class="col-md-4">
+                    <label class="form-label">تخفیف (تومان)</label>
+                    <input type="text" name="discount" class="form-control" min="0" value="0" oninput="formatInputNumber(this)" onfocus="clearIfZero(this)">
+                </div>
+
+                <!-- پرداختی -->
+                <div class="col-md-4">
+                    <label class="form-label">مبلغ پرداخت‌شده (تومان)</label>
+                    <input type="text" name="amount_paid" class="form-control" min="0" value="0" required oninput="formatInputNumber(this)" onfocus="clearIfZero(this)">
+                </div>
+
+                <!-- نوع پرداخت -->
+                <div class="col-md-6">
+                    <label class="form-label">نوع پرداخت</label>
+                    <select name="payment_type" class="form-select" required>
+                        <option value="cash">نقدی</option>
+                        <option value="check">چک</option>
+                    </select>
+                </div>
+
+                <!-- ✅ نمایش فقط هنگام انتخاب "چک" -->
+                <div id="checkFields" class="d-none">
+                    <div class="mb-2">
+                        <label class="form-label">تاریخ سررسید چک</label>
+                        <input type="text" name="check_due_date" class="form-control jalali-datepicker">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">توضیح (اختیاری)</label>
+                        <textarea name="note" rows="2" class="form-control"></textarea>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">ثبت فاکتور</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
+    function updateTotal() {
+        const priceInput = document.querySelector('[name="design_price_per_piece"]');
+        const qtyInput = document.querySelector('[name="quantity"]');
+        const totalDisplay = document.getElementById("calculatedTotal");
+    
+        // حذف ویرگول‌ها از ورودی قیمت
+        const rawPrice = priceInput.value.replace(/,/g, '');
+        const price = parseInt(rawPrice) || 0;
+    
+        const quantity = parseInt(qtyInput.value) || 0;
+    
+        const total = price * quantity;
+        totalDisplay.innerText = formatNumber(total);
+    }
+    
+    
+    // اجرای زنده هنگام تغییر فیلدها
+    document.addEventListener("DOMContentLoaded", function() {
+        const priceInput = document.querySelector('[name="design_price_per_piece"]');
+        const qtyInput = document.querySelector('[name="quantity"]');
+    
+        priceInput.addEventListener("input", updateTotal);
+        qtyInput.addEventListener("input", updateTotal);
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const paymentSelect = document.querySelector('[name="payment_type"]');
+        const checkFields = document.getElementById("checkFields");
+    
+        function toggleCheckFields() {
+            if (paymentSelect.value === "check") {
+                checkFields.classList.remove("d-none");
+            } else {
+                checkFields.classList.add("d-none");
+            }
+        }
+    
+        paymentSelect.addEventListener("change", toggleCheckFields);
+        toggleCheckFields();  // اجرا اولیه
+    });
+</script>
+
+<script>
+    function formatInputNumber(input) {
+        // حذف کاراکترهای غیرعددی
+        let raw = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
+        input.value = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function clearIfZero(input) {
+        if (input.value.trim() === "0" || input.value.trim() === "۰") {
+            input.value = "";
+        }
+    }
+</script>
+    
+    
+    
+{% endblock extra_js %}
