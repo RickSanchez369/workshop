@@ -19,6 +19,7 @@ import jdatetime
 from django.http import FileResponse, Http404
 from django.conf import settings
 import os
+from django.core.paginator import Paginator
 
 
 # Create your views here.
@@ -178,6 +179,31 @@ def invoice_list(request):
             Q(customer__name__icontains=query) |
             Q(invoice_number__icontains=query)
         )
+        
+        
+    # 🔁 ویرایش فاکتور
+    if request.method == 'POST' and 'edit_invoice' in request.POST:
+        invoice = get_object_or_404(Invoice, id=request.POST.get('invoice_id'))
+
+        invoice.date = request.POST.get('date').replace('/', '-')
+        invoice.customer_id = request.POST.get('customer')
+        invoice.design_id = request.POST.get('design')
+        invoice.stone_id = request.POST.get('stone')
+        invoice.design_price_per_piece = int(request.POST.get('design_price_per_piece').replace(',', ''))
+        invoice.quantity = int(request.POST.get('quantity'))
+        invoice.discount = int(request.POST.get('discount').replace(',', ''))
+        invoice.total_price = invoice.design_price_per_piece * invoice.quantity - invoice.discount
+        invoice.amount_paid = int(request.POST.get('amount_paid').replace(',', ''))
+        invoice.remaining_debt = invoice.total_price - invoice.amount_paid
+        invoice.payment_type = request.POST.get('payment_type')
+        invoice.check_due_date = request.POST.get('check_due_date') or None
+        invoice.note = request.POST.get('note') or ''
+        invoice.issuer_id = request.POST.get('issuer')
+
+        invoice.save()
+        messages.success(request, "فاکتور با موفقیت ویرایش شد.")
+        return redirect('invoices')
+
 
     # افزودن فاکتور جدید
     if request.method == 'POST' and 'add_invoice' in request.POST:
@@ -257,14 +283,23 @@ def invoice_list(request):
 
         messages.success(request, "فاکتور با موفقیت ثبت شد.")
         return redirect('invoices')
+    
+    
+    # بعد از دریافت لیست کامل:
+    paginator = Paginator(invoices, 20)  # نمایش ۲۰ فاکتور در هر صفحه
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
+    # ارسال به قالب:
     return render(request, 'invoices/list.html', {
-        'invoices': invoices,
+        'page_obj': page_obj,
+        'invoices': page_obj.object_list,
         'customers': Customer.objects.all(),
         'designs': Design.objects.all(),
         'stones': Stone.objects.all(),
         'users': User.objects.all(),
     })
+
 
 @login_required
 def inventory_list(request):

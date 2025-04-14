@@ -37,9 +37,11 @@
                     <th>طرح</th>
                     <th>سنگ</th>
                     <th>تعداد</th>
+                    <th>قیمت طرح</th>  <!-- ستون اضافه شده -->
                     <th>قیمت کل</th>
                     <th>پرداختی</th>
                     <th>باقی‌مانده</th>
+                    <th>عملیات</th>
                 </tr>
             </thead>
             <tbody>
@@ -51,9 +53,16 @@
                         <td>{{ invoice.design.title }}</td>
                         <td>{{ invoice.stone.name }}</td>
                         <td>{{ invoice.quantity }}</td>
+                        <td>{{ invoice.design_price_per_piece|comma }}</td>
                         <td>{{ invoice.total_price|comma }}</td>
                         <td>{{ invoice.amount_paid|comma }}</td>
                         <td>{{ invoice.remaining_debt|comma }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                                    data-bs-target="#editInvoiceModal{{ invoice.id }}">
+                                ✏️ ویرایش
+                            </button>
+                        </td>                        
                     </tr>
                 {% empty %}
                     <tr>
@@ -62,6 +71,28 @@
                 {% endfor %}
             </tbody>
         </table>
+        <!-- 📄 صفحه‌بندی -->
+        <nav aria-label="page navigation" class="mt-3">
+            <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">قبلی</a>
+                </li>
+            {% endif %}
+        
+            {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endfor %}
+        
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">بعدی</a>
+                </li>
+            {% endif %}
+            </ul>
+        </nav>
     </div>
 </div> <!-- پایان container -->
 
@@ -216,6 +247,41 @@
         </form>
     </div>
 </div>
+
+{% for invoice in invoices %}
+<div class="modal fade" id="editInvoiceModal{{ invoice.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" class="modal-content">
+      {% csrf_token %}
+      <input type="hidden" name="edit_invoice" value="1">
+      <input type="hidden" name="invoice_id" value="{{ invoice.id }}">
+
+      <div class="modal-header">
+        <h5 class="modal-title">✏️ ویرایش فاکتور {{ invoice.invoice_number }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+      </div>
+
+      <div class="modal-body row g-3">
+        <!-- فیلدهای مشابه modal ثبت فاکتور -->
+        <!-- فقط مقدار اولیه هر input رو از invoice بگیر -->
+        <div class="col-md-6">
+            <label class="form-label">تاریخ</label>
+            <input type="text" name="date" class="form-control jalali-datepicker"
+                   value="{{ invoice.date }}">
+        </div>
+        <!-- بقیه فیلدها مثل صادرکننده، مشتری، طرح، سنگ، ... -->
+        <!-- مقدار اولیه‌شون از invoice میاد -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">ذخیره تغییرات</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
 {% endblock content %}
 
 {% block extra_js %}
