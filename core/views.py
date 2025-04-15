@@ -180,29 +180,30 @@ def invoice_list(request):
             Q(invoice_number__icontains=query)
         )
         
-        
-    # 🔁 ویرایش فاکتور
+          
+    # 🔁✏️ ویرایش فاکتور موجود
     if request.method == 'POST' and 'edit_invoice' in request.POST:
         invoice = get_object_or_404(Invoice, id=request.POST.get('invoice_id'))
-
+        
         invoice.date = request.POST.get('date').replace('/', '-')
         invoice.customer_id = request.POST.get('customer')
         invoice.design_id = request.POST.get('design')
         invoice.stone_id = request.POST.get('stone')
-        invoice.design_price_per_piece = int(request.POST.get('design_price_per_piece').replace(',', ''))
-        invoice.quantity = int(request.POST.get('quantity'))
-        invoice.discount = int(request.POST.get('discount').replace(',', ''))
-        invoice.total_price = invoice.design_price_per_piece * invoice.quantity - invoice.discount
-        invoice.amount_paid = int(request.POST.get('amount_paid').replace(',', ''))
+        invoice.design_price_per_piece = int(request.POST.get('design_price_per_piece').replace(',', '') or 0)
+        invoice.quantity = int(request.POST.get('quantity') or 0)
+        invoice.discount = int(request.POST.get('discount').replace(',', '') or 0)
+        invoice.total_price = (invoice.design_price_per_piece * invoice.quantity) - invoice.discount
+        invoice.amount_paid = int(request.POST.get('amount_paid').replace(',', '') or 0)
         invoice.remaining_debt = invoice.total_price - invoice.amount_paid
         invoice.payment_type = request.POST.get('payment_type')
         invoice.check_due_date = request.POST.get('check_due_date') or None
         invoice.note = request.POST.get('note') or ''
         invoice.issuer_id = request.POST.get('issuer')
-
+        
         invoice.save()
-        messages.success(request, "فاکتور با موفقیت ویرایش شد.")
+        messages.success(request, f"فاکتور {invoice.invoice_number} با موفقیت ویرایش شد.")
         return redirect('invoices')
+
 
 
     # افزودن فاکتور جدید
@@ -304,7 +305,6 @@ def invoice_list(request):
         'stones': Stone.objects.all(),
         'users': User.objects.all(),
     })
-
 
 @login_required
 def inventory_list(request):

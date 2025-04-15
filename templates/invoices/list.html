@@ -262,25 +262,111 @@
       </div>
 
       <div class="modal-body row g-3">
-        <!-- فیلدهای مشابه modal ثبت فاکتور -->
-        <!-- فقط مقدار اولیه هر input رو از invoice بگیر -->
+
+        <!-- تاریخ -->
         <div class="col-md-6">
-            <label class="form-label">تاریخ</label>
-            <input type="text" name="date" class="form-control jalali-datepicker"
-                   value="{{ invoice.date }}">
+          <label class="form-label">تاریخ</label>
+          <input type="text" name="date" class="form-control jalali-datepicker" value="{{ invoice.date|date:'Y/m/d' }}">
         </div>
-        <!-- بقیه فیلدها مثل صادرکننده، مشتری، طرح، سنگ، ... -->
-        <!-- مقدار اولیه‌شون از invoice میاد -->
+
+        <!-- صادرکننده -->
+        <div class="col-md-6">
+          <label class="form-label">صادرکننده</label>
+          <select name="issuer" class="form-select">
+            {% for user in users %}
+              <option value="{{ user.id }}" {% if invoice.issuer.id == user.id %}selected{% endif %}>{{ user.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- مشتری -->
+        <div class="col-md-6">
+          <label class="form-label">مشتری</label>
+          <select name="customer" class="form-select">
+            {% for c in customers %}
+              <option value="{{ c.id }}" {% if invoice.customer.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- طرح -->
+        <div class="col-md-6">
+          <label class="form-label">طرح</label>
+          <select name="design" class="form-select">
+            {% for d in designs %}
+              <option value="{{ d.id }}" {% if invoice.design.id == d.id %}selected{% endif %}>{{ d.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- سنگ -->
+        <div class="col-md-6">
+          <label class="form-label">سنگ</label>
+          <select name="stone" class="form-select">
+            {% for s in stones %}
+              <option value="{{ s.id }}" {% if invoice.stone.id == s.id %}selected{% endif %}>{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- قیمت قواره -->
+        <div class="col-md-6">
+          <label class="form-label">قیمت هر قواره</label>
+          <input type="text" name="design_price_per_piece" class="form-control"
+                 value="{{ invoice.design_price_per_piece|comma }}">
+        </div>
+
+        <!-- تعداد -->
+        <div class="col-md-4">
+          <label class="form-label">تعداد</label>
+          <input type="number" name="quantity" class="form-control" value="{{ invoice.quantity }}">
+        </div>
+
+        <!-- تخفیف -->
+        <div class="col-md-4">
+          <label class="form-label">تخفیف</label>
+          <input type="text" name="discount" class="form-control" value="{{ invoice.discount|comma }}">
+        </div>
+
+        <!-- پرداختی -->
+        <div class="col-md-4">
+          <label class="form-label">مبلغ پرداخت‌شده</label>
+          <input type="text" name="amount_paid" class="form-control" value="{{ invoice.amount_paid|comma }}">
+        </div>
+
+        <!-- نوع پرداخت -->
+        <div class="col-md-6">
+          <label class="form-label">نوع پرداخت</label>
+          <select name="payment_type" class="form-select">
+            <option value="cash" {% if invoice.payment_type == 'cash' %}selected{% endif %}>نقدی</option>
+            <option value="check" {% if invoice.payment_type == 'check' %}selected{% endif %}>چک</option>
+          </select>
+        </div>
+
+        <!-- تاریخ چک و یادداشت -->
+        <div class="col-md-6">
+          <label class="form-label">تاریخ چک</label>
+          <input type="text" name="check_due_date" class="form-control jalali-datepicker"
+                 value="{{ invoice.check_due_date|default:'' }}">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">توضیح</label>
+          <textarea name="note" class="form-control">{{ invoice.note }}</textarea>
+        </div>
+
       </div>
 
       <div class="modal-footer">
-        <button type="submit" class="btn btn-success">ذخیره تغییرات</button>
+        <button type="submit" class="btn btn-success">ذخیره</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
       </div>
     </form>
   </div>
 </div>
 {% endfor %}
+
+
 
 {% endblock content %}
 
