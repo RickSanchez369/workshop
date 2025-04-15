@@ -207,20 +207,25 @@ def invoice_list(request):
 
     # افزودن فاکتور جدید
     if request.method == 'POST' and 'add_invoice' in request.POST:
-        # 1. بررسی مشتری جدید یا انتخابی
-        new_name = request.POST.get('new_customer_name')
-        new_phone = request.POST.get('new_customer_phone')
-        new_address = request.POST.get('new_customer_address')
+        # بررسی اینکه آیا مشتری جدید وارد شده یا مشتری انتخابی استفاده شده
+        customer = None
+        new_name = request.POST.get('new_customer_name', '').strip()
+        new_phone = request.POST.get('new_customer_phone', '').strip()
+        new_address = request.POST.get('new_customer_address', '').strip()
 
         if new_name:
             customer = Customer.objects.create(
                 name=new_name,
-                phone=new_phone or '',
-                address=new_address or '',
+                phone=new_phone,
+                address=new_address
             )
         else:
             customer_id = request.POST.get('customer')
+            if not customer_id:
+                messages.error(request, "لطفاً یک مشتری انتخاب کنید یا مشتری جدید وارد نمایید.")
+                return redirect('invoices')
             customer = get_object_or_404(Customer, id=customer_id)
+
 
         # 2. دریافت اطلاعات فاکتور
         design_id = request.POST.get('design')

@@ -138,7 +138,7 @@
                                 ➕ مشتری جدید
                             </button>
                     </div>
-                    <select name="customer" class="form-select" required>
+                    <select name="customer" class="form-select">
                         <option value="">-- انتخاب مشتری --</option>
                         {% for c in customers %}
                             <option value="{{ c.id }}">{{ c.name }}</option>
