@@ -13,7 +13,7 @@ from django.http import HttpResponse
 from docx import Document
 from docx.shared import Inches
 from django.utils.text import slugify
-from datetime import datetime
+from datetime import date
 from persiantools.jdatetime import JalaliDate
 import jdatetime
 from django.http import FileResponse, Http404
@@ -306,6 +306,7 @@ def invoice_list(request):
         'users': User.objects.all(),
     })
 
+
 @login_required
 def inventory_list(request):
     # ثبت سنگ جدید
@@ -529,45 +530,63 @@ def financial_report(request):
         'total_unpaid': total_unpaid,
     })
 
-    
+
+
+def jalali_to_gregorian(date_str):
+    try:
+        y, m, d = map(int, date_str.split('/'))
+        return JalaliDate(y, m, d).to_gregorian()
+    except:
+        return None
+
 
 @login_required
 def user_report(request):
     start = request.GET.get('start_date')
     end = request.GET.get('end_date')
-    start_date = parse_date(start.replace('/', '-')) if start else None
-    end_date = parse_date(end.replace('/', '-')) if end else None
+
+    start_date = jalali_to_gregorian(start) if start else None
+    end_date = jalali_to_gregorian(end) if end else None
+
+    # اگر تاریخ‌ها جابه‌جا بودن، درستش کن
+    if start_date and end_date and start_date > end_date:
+        start_date, end_date = end_date, start_date
 
     users = User.objects.all()
     user_data = []
 
     for user in users:
-        invoices = Invoice.objects.filter(issuer=user).order_by('-date')
-        expenses = Expense.objects.filter(user=user).order_by('-date')
+        invoices = Invoice.objects.filter(issuer=user)
+        expenses = Expense.objects.filter(user=user)
+        payments = CustomerPayment.objects.filter(received_by=user)
 
         if start_date and end_date:
-            invoices = invoices.filter(date__range=(start_date, end_date)).order_by('-date')
-            expenses = expenses.filter(date__range=(start_date, end_date)).order_by('-date')
+            invoices = invoices.filter(date__range=(start_date, end_date))
+            expenses = expenses.filter(date__range=(start_date, end_date))
+            payments = payments.filter(date__range=(start_date, end_date))
 
-        total_sales = sum(i.total_price for i in invoices)
-        total_debt = sum(i.remaining_debt for i in invoices)
-        total_expenses = sum(e.amount for e in expenses)
+        # محاسبه دریافتی واقعی = پرداخت‌های مرتبط با فاکتور + پرداخت‌های مستقیم
+        total_received = 0
+        for p in payments:
+            if p.invoice and p.invoice.issuer == p.received_by:
+                total_received += p.amount
+            elif not p.invoice:
+                total_received += p.amount
 
-        # ✅ تعداد چک‌ها + لیست چک‌ها
+        total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+
         checks = invoices.filter(payment_type='check')
         check_count = checks.count()
         check_details = [{'date': i.check_due_date, 'note': i.note or '—'} for i in checks]
 
         user_data.append({
             'user': user,
-            'total_sales': total_sales,
-            'total_debt': total_debt,
-            'net_received': total_sales - total_debt,  # ✅ دریافتی خالص
+            'net_received': total_received,
             'total_expenses': total_expenses,
             'check_count': check_count,
             'checks': check_details,
-            'invoices': invoices,
-            'expenses': expenses,
+            'invoices': invoices.order_by('-date'),
+            'expenses': expenses.order_by('-date'),
         })
 
     return render(request, 'users/report.html', {

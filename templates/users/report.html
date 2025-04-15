@@ -5,56 +5,60 @@
 {% block title %}آمار کاربران{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h4 class="mb-4 text-center">👥 آمار فروش و هزینه کاربران</h4>
+<div class="container py-4">
+    <h4 class="mb-4 text-center">👥 آمار واقعی دریافتی کاربران</h4>
 
-    <!-- ✅ فرم فیلتر بازه زمانی -->
-    <!-- فیلتر بر اساس بازه تاریخ -->
-    <form method="get" class="d-flex align-items-center gap-2">
-        <span class="mx-1">از</span>
-        <input type="text" name="start_date" class="form-control jalali-datepicker" required
-                value="{{ request.GET.start_date }}">
-        <span class="mx-1">تا</span>
-        <input type="text" name="end_date" class="form-control jalali-datepicker" required
-                value="{{ request.GET.end_date }}">
-        <button class="btn btn-outline-secondary" type="submit">فیلتر</button>
-    </form>
+    <!-- فرم فیلتر تاریخ -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="get" class="d-flex flex-wrap align-items-center gap-2 m-0 w-100">
+                <span>از</span>
+                <input type="text" name="start_date" class="form-control jalali-datepicker w-auto"
+                       placeholder="تاریخ شروع" value="{{ request.GET.start_date }}">
+                <span>تا</span>
+                <input type="text" name="end_date" class="form-control jalali-datepicker w-auto"
+                       placeholder="تاریخ پایان" value="{{ request.GET.end_date }}">
+                <button class="btn btn-outline-primary" type="submit">🔍 فیلتر</button>
+            </form>
+        </div>
+    </div>
 
-    <!-- ✅ جدول آمار کلی کاربران -->
+    <!-- جدول کاربران -->
     <div class="table-responsive mb-4">
-        <table class="table table-bordered table-hover align-middle text-center">
+        <table class="table table-bordered table-hover align-middle text-center table-striped">
             <thead class="table-light">
                 <tr>
                     <th>کاربر</th>
-                    <th>💰 دریافتی خالص</th>  <!-- ✅ تغییر متن ستون -->
-                    <th>مجموع هزینه</th>
-                    <th>تعداد چک</th>  <!-- ✅ تغییر عنوان ستون -->
-                    <th>جزییات</th>
+                    <th>💰 دریافتی واقعی</th>
+                    <th>💸 مجموع هزینه</th>
+                    <th>📄 تعداد چک</th>
+                    <th>👁️ جزییات</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in user_data %}
                     <tr>
                         <td>{{ item.user.username }}</td>
-                        <td class="text-success fw-bold">{{ item.net_received|comma }} تومان</td>  <!-- ✅ تغییر داده -->
+                        <td class="text-success fw-bold">{{ item.net_received|comma }} تومان</td>
                         <td class="text-danger fw-bold">{{ item.total_expenses|comma }} تومان</td>
-                        <td>{{ item.check_count }}</td>  <!-- ✅ تعداد چک‌ها -->
+                        <td>{{ item.check_count }}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="collapse" data-bs-target="#details{{ item.user.id }}">
-                                👁️ مشاهده
+                            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="collapse"
+                                    data-bs-target="#details{{ item.user.id }}">
+                                مشاهده
                             </button>
                         </td>
                     </tr>
 
-
-                    <!-- ✅ جداول جزئیات هر کاربر -->
-                    <tr class="collapse bg-light" id="details{{ item.user.id }}">
-                        <td colspan="5">
+                    <!-- جزئیات collapse -->
+                    <tr class="collapse" id="details{{ item.user.id }}">
+                        <td colspan="5" class="p-3 rounded-3 border bg-light">
                             <div class="row g-3">
-                                <!-- 🔹 فاکتورهای فروش -->
+
+                                <!-- فاکتورها -->
                                 <div class="col-md-6">
                                     <div class="card h-100 shadow-sm">
-                                        <div class="card-header">🧾 فاکتورهای فروش</div>
+                                        <div class="card-header bg-light">🧾 فاکتورهای فروش</div>
                                         <div class="card-body table-responsive">
                                             <table class="table table-sm table-bordered text-center align-middle">
                                                 <thead class="table-light">
@@ -72,7 +76,7 @@
                                                             <td>{{ invoice.total_price|comma }}</td>
                                                         </tr>
                                                     {% empty %}
-                                                        <tr><td colspan="3" class="text-muted">ندارد</td></tr>
+                                                        <tr><td colspan="3" class="text-muted">فاکتوری ثبت نشده</td></tr>
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
@@ -80,10 +84,10 @@
                                     </div>
                                 </div>
 
-                                <!-- 🔹 هزینه‌ها -->
+                                <!-- هزینه‌ها -->
                                 <div class="col-md-6">
                                     <div class="card h-100 shadow-sm">
-                                        <div class="card-header">💰 هزینه‌های ثبت‌شده</div>
+                                        <div class="card-header bg-light">💸 هزینه‌های ثبت‌شده</div>
                                         <div class="card-body table-responsive">
                                             <table class="table table-sm table-bordered text-center align-middle">
                                                 <thead class="table-light">
@@ -101,14 +105,15 @@
                                                             <td>{{ expense.amount|comma }}</td>
                                                         </tr>
                                                     {% empty %}
-                                                        <tr><td colspan="3" class="text-muted">ندارد</td></tr>
+                                                        <tr><td colspan="3" class="text-muted">هزینه‌ای ثبت نشده</td></tr>
                                                     {% endfor %}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
                                 </div>
-                                <!-- 🔹 لیست چک‌ها -->
+
+                                <!-- چک‌ها -->
                                 {% if item.check_count > 0 %}
                                 <div class="col-12">
                                     <div class="card shadow-sm mt-3">
