@@ -112,8 +112,8 @@
     {% if report %}
     <!-- 🧾 لیست مشتری‌هایی که در بازه فاکتور دارند -->
     <h5 class="mb-3">🧾 مشتریان دارای فاکتور در بازه زمانی</h5>
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
+    <div style="max-height: 400px; overflow-y: auto;" class="border rounded-3 table-responsive shadow-sm mb-4">
+        <table class="table table-bordered align-middle text-center mb-0">
             <thead class="table-light">
                 <tr>
                     <th>مشتری</th>
@@ -169,7 +169,7 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+    </div>    
 
     <!-- ✅ جدول هزینه‌های انجام‌شده در بازه -->
     <div class="card shadow-sm rounded-4 mb-4">

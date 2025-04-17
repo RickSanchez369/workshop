@@ -442,14 +442,17 @@ def financial_report(request):
         net_profit = total_sales - stone_cost - total_expenses
 
         # 📥 عملکرد کاربران
-        users_data = defaultdict(lambda: {
-            'username': '',
-            'invoice_received': 0,   # پرداختی‌های هنگام صدور فاکتور
-            'manual_received': 0,    # پرداخت‌های دستی (توسط received_by)
-            'total_debt': 0,
-            'check_count': 0,
-            'checks': [],
-        })
+        users_data = {}
+        for user in User.objects.all():
+            users_data[user.id] = {
+                'username': user.username,
+                'invoice_received': 0,
+                'manual_received': 0,
+                'total_debt': 0,
+                'check_count': 0,
+                'checks': [],
+            }
+
 
         # ✅ جمع‌آوری داده‌های اولیه فاکتورها و مشتری‌ها
         for invoice in invoices:
@@ -604,21 +607,19 @@ def export_financial_report_docx(request):
         return redirect('financial')
 
     # داده‌ها
-    invoices = Invoice.objects.select_related('customer', 'issuer').filter(
-        date__range=(report.start_date, report.end_date)
-    ).order_by('-date')
+    start_date, end_date = report.start_date, report.end_date
+    usd_rate = report.usd_rate
 
-    expenses = Expense.objects.select_related('user').filter(
-        date__range=(report.start_date, report.end_date)
-    ).order_by('-date')
+    invoices = Invoice.objects.select_related('customer', 'issuer').filter(date__range=(start_date, end_date))
+    expenses = Expense.objects.select_related('user').filter(date__range=(start_date, end_date))
+    payments = CustomerPayment.objects.select_related('invoice', 'received_by').filter(date__range=(start_date, end_date))
 
     # ساخت سند
     doc = Document()
     doc.add_heading('📄 گزارش مالی سیستم کارگاه', 0)
 
-    # اطلاعات کلی
-    doc.add_paragraph(f'🗓️ بازه گزارش: {report.start_date.strftime("%Y/%m/%d")} تا {report.end_date.strftime("%Y/%m/%d")}')
-    doc.add_paragraph(f'💵 نرخ دلار: {report.usd_rate:,} تومان')
+    doc.add_paragraph(f'🗓️ بازه گزارش: {start_date.strftime("%Y/%m/%d")} تا {end_date.strftime("%Y/%m/%d")}')
+    doc.add_paragraph(f'💵 نرخ دلار: {usd_rate:,} تومان')
     doc.add_paragraph(f'👤 ثبت‌کننده گزارش: {report.created_by.username}')
     doc.add_paragraph('')
 
@@ -631,7 +632,7 @@ def export_financial_report_docx(request):
     doc.add_paragraph(f'• 💰 سود خالص: {report.net_profit:,} تومان')
     doc.add_paragraph('')
 
-    # لیست مشتریان دارای فاکتور
+    # لیست مشتریان
     doc.add_heading('🧾 مشتریان دارای فاکتور در بازه', level=1)
     customers = {}
     for i in invoices:
@@ -658,11 +659,8 @@ def export_financial_report_docx(request):
         row[3].text = f"{c['debt']:,}"
     doc.add_paragraph('')
 
-    # 🔴 حذف جزئیات فاکتورهای هر مشتری چون خواستی حذف بشن
-    # 👉 این قسمت کلاً حذف شده
-
     # لیست هزینه‌ها
-    doc.add_heading('💰 هزینه‌های انجام‌شده در بازه', level=1)
+    doc.add_heading('💰 هزینه‌های انجام‌شده', level=1)
     exp_table = doc.add_table(rows=1, cols=4)
     exp_table.style = 'Table Grid'
     h = exp_table.rows[0].cells
@@ -679,48 +677,62 @@ def export_financial_report_docx(request):
         row[3].text = e.note or '—'
     doc.add_paragraph('')
 
-    # 👥 عملکرد کاربران
+    # 👥 عملکرد کاربران (اصلاح‌شده برای نمایش همه کاربران)
     doc.add_heading('👥 عملکرد کاربران', level=1)
+
+    # آماده‌سازی اولیه
     users = {}
+    for user in User.objects.all():
+        users[user.id] = {
+            'username': user.username,
+            'sales': 0,
+            'debt': 0,
+            'received': 0,
+            'checks': []
+        }
+
+    # جمع‌آوری داده‌ها از فاکتورها
     for i in invoices:
         u = i.issuer
-        if u and u.id not in users:
-            users[u.id] = {'username': u.username, 'sales': 0, 'debt': 0, 'checks': []}
         if u:
             users[u.id]['sales'] += i.total_price
             users[u.id]['debt'] += i.remaining_debt
             if i.payment_type == 'check':
                 users[u.id]['checks'].append({'date': str(i.check_due_date), 'note': i.note or '—'})
 
-    if users:
-        utable = doc.add_table(rows=1, cols=5)
-        utable.style = 'Table Grid'
-        h = utable.rows[0].cells
-        h[0].text = 'کاربر'
-        h[1].text = 'فروش کل'
-        h[2].text = 'بدهی'
-        h[3].text = 'دریافتی خالص'
-        h[4].text = 'تعداد چک'
+    # جمع‌آوری داده‌ها از پرداخت‌ها
+    payments = CustomerPayment.objects.select_related('received_by', 'invoice__issuer').filter(
+        date__range=(report.start_date, report.end_date)
+    )
+    for p in payments:
+        if p.received_by:
+            users[p.received_by.id]['received'] += p.amount
 
-        for u in users.values():
-            row = utable.add_row().cells
-            row[0].text = u['username']
-            row[1].text = f"{u['sales']:,}"
-            row[2].text = f"{u['debt']:,}"
-            row[3].text = f"{u['sales'] - u['debt']:,}"
-            row[4].text = str(len(u['checks']))
+    # نمایش جدول کاربران
+    utable = doc.add_table(rows=1, cols=5)
+    utable.style = 'Table Grid'
+    h = utable.rows[0].cells
+    h[0].text = 'کاربر'
+    h[1].text = 'دریافتی واقعی'
+    h[2].text = 'بدهی'
+    h[3].text = 'فروش کل'
+    h[4].text = 'تعداد چک'
 
-            # جزییات چک‌ها
-            if u['checks']:
-                doc.add_paragraph(f"📋 چک‌های {u['username']}:", style='List Bullet')
-                for ch in u['checks']:
-                    doc.add_paragraph(f"• تاریخ: {ch['date']}  -  توضیح: {ch['note']}", style='List Bullet 2')
+    for u in users.values():
+        row = utable.add_row().cells
+        row[0].text = u['username']
+        row[1].text = f"{u['received']:,}"
+        row[2].text = f"{u['debt']:,}"
+        row[3].text = f"{u['sales']:,}"
+        row[4].text = str(len(u['checks']))
 
-    else:
-        doc.add_paragraph("هیچ اطلاعاتی برای عملکرد کاربران یافت نشد.")
+        if u['checks']:
+            doc.add_paragraph(f"📋 چک‌های {u['username']}:", style='List Bullet')
+            for ch in u['checks']:
+                doc.add_paragraph(f"• تاریخ: {ch['date']} - توضیح: {ch['note']}", style='List Bullet 2')
 
-    # تولید فایل
-    filename = f"گزارش_مالی_{slugify(str(report.start_date))}_تا_{slugify(str(report.end_date))}.docx"
+    # 📄 تولید و ارسال فایل
+    filename = f"گزارش_مالی_{slugify(str(start_date))}_تا_{slugify(str(end_date))}.docx"
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     doc.save(response)
