@@ -203,6 +203,38 @@
             </table>
         </div>
     </div>
+
+    <!-- ✅ جدول سنگ های مصرف شده در بازه -->
+    <h5 class="mt-5 mb-3">💎 سنگ‌های مصرف‌شده در بازه</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered text-center align-middle shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>تاریخ</th>
+                    <th>نوع سنگ</th>
+                    <th>مقدار (کارتن)</th>
+                    <th>قیمت هر کارتن (دلار)</th>
+                    <th>هزینه کل (تومان)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in stone_consumptions %}
+                <tr>
+                    <td>{{ s.date }}</td>
+                    <td>{{ s.stone }}</td>
+                    <td>{{ s.quantity }}</td>
+                    <td>{{ s.price_usd }}</td>
+                    <td>{{ s.cost_toman|comma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-muted">در این بازه هیچ مصرفی ثبت نشده است.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     <!-- 👥 عملکرد کاربران در بازه گزارش مالی -->
     <h5 class="mt-5 mb-3">👥 عملکرد کاربران</h5>
     <div class="table-responsive">

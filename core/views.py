@@ -433,10 +433,21 @@ def financial_report(request):
 
         # 💎 هزینه سنگ‌ها
         transactions = InventoryTransaction.objects.select_related('stone').filter(
-            type='consume', date__range=(start_date, end_date)
+        type='consume', date__range=(start_date, end_date)
         ).order_by('-date')
+
+        stone_consumptions = []
         for t in transactions:
-            stone_cost += t.quantity_box * t.stone.price_per_box_usd * usd_rate
+            cost = t.quantity_box * t.stone.price_per_box_usd * usd_rate
+            stone_cost += cost
+            stone_consumptions.append({
+                'stone': t.stone.name,
+                'date': t.date,
+                'quantity': t.quantity_box,
+                'price_usd': t.stone.price_per_box_usd,
+                'cost_toman': int(cost),
+            })
+
 
         # 💰 سود خالص
         net_profit = total_sales - stone_cost - total_expenses
@@ -531,6 +542,7 @@ def financial_report(request):
         'users_data': users_data,
         'total_received': total_received,
         'total_unpaid': total_unpaid,
+        'stone_consumptions': stone_consumptions,
     })
 
 
@@ -676,6 +688,35 @@ def export_financial_report_docx(request):
         row[2].text = f"{e.amount:,}"
         row[3].text = e.note or '—'
     doc.add_paragraph('')
+    
+    # 💎 جدول سنگ‌های مصرف‌شده
+    doc.add_heading('💎 لیست سنگ‌های مصرف‌شده', level=1)
+
+    transactions = InventoryTransaction.objects.select_related('stone').filter(
+        type='consume', date__range=(start_date, end_date)
+    ).order_by('-date')
+
+    if transactions.exists():
+        t_table = doc.add_table(rows=1, cols=5)
+        t_table.style = 'Table Grid'
+        h = t_table.rows[0].cells
+        h[0].text = 'تاریخ'
+        h[1].text = 'نوع سنگ'
+        h[2].text = 'مقدار (کارتن)'
+        h[3].text = 'قیمت هر کارتن (دلار)'
+        h[4].text = 'هزینه کل (تومان)'
+
+        for t in transactions:
+            cost = t.quantity_box * t.stone.price_per_box_usd * usd_rate
+            row = t_table.add_row().cells
+            row[0].text = str(t.date)
+            row[1].text = t.stone.name
+            row[2].text = str(t.quantity_box)
+            row[3].text = str(t.stone.price_per_box_usd)
+            row[4].text = f"{int(cost):,}"
+    else:
+        doc.add_paragraph("هیچ تراکنش مصرفی در این بازه ثبت نشده است.")
+
 
     # 👥 عملکرد کاربران (اصلاح‌شده برای نمایش همه کاربران)
     doc.add_heading('👥 عملکرد کاربران', level=1)
