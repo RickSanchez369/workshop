@@ -13,4 +13,5 @@ urlpatterns = [
     path('financial/export/', views.export_financial_report_docx, name='financial_export'),
     path('user-stats/', views.user_report, name='user_report'),
     path('download-backup/', views.download_backup, name='download_backup'),
+    path('ajax/customers/', views.ajax_customer_search, name='ajax_customer_search'),
 ]

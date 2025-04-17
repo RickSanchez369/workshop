@@ -168,7 +168,21 @@ def customer_list(request):
         'users': User.objects.all(),  # 👈 نمایش کاربران برای انتخاب در فرم
     })
 
-    
+
+@login_required
+def ajax_customer_search(request):
+    term = request.GET.get('term', '')
+    customers = Customer.objects.filter(name__icontains=term)[:15]  # حداکثر ۱۵ نتیجه
+
+    results = []
+    for c in customers:
+        results.append({
+            'id': c.id,
+            'text': c.name
+        })
+
+    return JsonResponse({'results': results})
+
 # فاکتورهای فروش
 @login_required
 def invoice_list(request):
@@ -309,6 +323,85 @@ def invoice_list(request):
 
 @login_required
 def inventory_list(request):
+
+    # ✅ ویرایش سنگ
+    if request.method == 'POST' and 'edit_stone' in request.POST:
+        stone_id = request.POST.get('edit_stone')
+        name = request.POST.get('name')
+        price = request.POST.get('price_per_box_usd')
+
+        try:
+            stone = Stone.objects.get(id=stone_id)
+            stone.name = name
+            stone.price_per_box_usd = price
+            stone.save()
+            messages.success(request, "سنگ با موفقیت ویرایش شد.")
+        except Stone.DoesNotExist:
+            messages.error(request, "سنگ موردنظر یافت نشد.")
+        
+        return redirect('inventory')
+
+    # ✅ ویرایش طرح
+    if request.method == 'POST' and 'edit_design' in request.POST:
+        design_id = request.POST.get('edit_design')
+        title = request.POST.get('title')
+
+        try:
+            design = Design.objects.get(id=design_id)
+            design.title = title
+            design.save()
+            messages.success(request, "طرح با موفقیت ویرایش شد.")
+        except Design.DoesNotExist:
+            messages.error(request, "طرح موردنظر یافت نشد.")
+
+        return redirect('inventory')
+    
+    # ✅ ویرایش تراکنش سنگ
+    if request.method == 'POST' and 'edit_transaction' in request.POST:
+        transaction_id = request.POST.get('edit_transaction')
+        try:
+            transaction = InventoryTransaction.objects.get(id=transaction_id)
+        except InventoryTransaction.DoesNotExist:
+            messages.error(request, "تراکنش موردنظر یافت نشد.")
+            return redirect('inventory')
+
+        old_quantity = transaction.quantity_box
+        old_type = transaction.type
+        old_stone = transaction.stone
+
+        # مقادیر جدید
+        new_stone_id = request.POST.get('stone')
+        new_quantity = Decimal(request.POST.get('quantity_box'))
+        new_date = request.POST.get('date').replace('/', '-')
+        new_type = request.POST.get('type')
+
+        # حذف اثر قبلی از موجودی
+        if old_type == 'buy':
+            old_stone.stock_box -= old_quantity
+        elif old_type == 'consume':
+            old_stone.stock_box += old_quantity
+        old_stone.save()
+
+        # ذخیره تغییرات جدید
+        transaction.stone_id = new_stone_id
+        transaction.quantity_box = new_quantity
+        transaction.date = new_date
+        transaction.type = new_type
+        transaction.save()
+
+        # اعمال اثر جدید بر موجودی
+        new_stone = transaction.stone
+        if new_type == 'buy':
+            new_stone.stock_box += new_quantity
+        elif new_type == 'consume':
+            new_stone.stock_box -= new_quantity
+        new_stone.save()
+
+        messages.success(request, "تراکنش با موفقیت ویرایش شد.")
+        return redirect('inventory')
+
+
+    
     # ثبت سنگ جدید
     if request.method == 'POST' and 'add_stone' in request.POST:
         name = request.POST.get('name')

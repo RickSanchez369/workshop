@@ -138,11 +138,8 @@
                                 ➕ مشتری جدید
                             </button>
                     </div>
-                    <select name="customer" class="form-select">
-                        <option value="">-- انتخاب مشتری --</option>
-                        {% for c in customers %}
-                            <option value="{{ c.id }}">{{ c.name }}</option>
-                        {% endfor %}
+                    <select id="customerSelect" name="customer" class="form-select" style="width: 100%;">
+                        <option value="">جستجوی مشتری...</option>
                     </select>
                     <!-- 🔹 فرم افزودن مشتری جدید -->
                     <div class="collapse mb-3" id="newCustomerForm">
@@ -434,6 +431,27 @@
     }
 </script>
     
+<script>
+    $(document).ready(function() {
+        $('#customerSelect').select2({
+            placeholder: 'نام مشتری را تایپ کنید...',
+            allowClear: true,
+            language: "fa",
+            ajax: {
+                url: "{% url 'ajax_customer_search' %}",
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term };
+                },
+                processResults: function(data) {
+                    return { results: data.results };
+                },
+                cache: true
+            }
+        });
+    });
+</script>
     
     
 {% endblock extra_js %}
