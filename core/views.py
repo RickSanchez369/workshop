@@ -20,6 +20,8 @@ from django.http import FileResponse, Http404
 from django.conf import settings
 import os
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+
 
 
 # Create your views here.

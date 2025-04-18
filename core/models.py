@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 import django_jalali.db.models as jmodels  # ✅ اضافه کن اگر هنوز نذاشتی
 from django.core.exceptions import ValidationError
-from core.models import Invoice, Expense, InventoryTransaction
 from django.db.models import Sum
 from decimal import Decimal  # بالای فایل
 
@@ -32,7 +31,10 @@ class Customer(models.Model):
         ordering = ['name']
 
     def recalculate_financials(self):
-        from core.models import Invoice, CustomerPayment
+        from django.apps import apps
+        Invoice = apps.get_model('core', 'Invoice')
+        CustomerPayment = apps.get_model('core', 'CustomerPayment')
+
 
         # جمع کل بدهی فاکتورها
         invoices = Invoice.objects.filter(customer=self)
@@ -310,6 +312,12 @@ class FinancialReport(models.Model):
         super().save(*args, **kwargs)
 
     def recalculate_from_data(self):
+        
+        from django.apps import apps
+        Invoice = apps.get_model('core', 'Invoice')
+        Expense = apps.get_model('core', 'Expense')
+        InventoryTransaction = apps.get_model('core', 'InventoryTransaction')
+
 
         invoices = Invoice.objects.filter(date__range=(self.start_date, self.end_date))
         expenses = Expense.objects.filter(date__range=(self.start_date, self.end_date))
