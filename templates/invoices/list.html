@@ -128,7 +128,7 @@
                 </div>
 
                 <!-- مشتری -->
-                <!-- 👤 انتخاب مشتری با Select2 -->
+                <!-- 👤 انتخاب مشتری ساده از بین موجودها -->
                 <div class="col-md-6">
                     <label class="form-label">مشتری</label>
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -137,10 +137,15 @@
                             ➕ مشتری جدید
                         </button>
                     </div>
-                    <!-- ✅ توجه: هیچ option اضافه‌ای نمی‌ذاریم، فقط Select2 خودش لود می‌کنه -->
-                    <select id="customerSelect" name="customer" class="form-select" style="width: 100%;"></select>
-                </div>                
-                <!-- 👤 فرم افزودن مشتری جدید -->
+                    <select name="customer" class="form-select" required>
+                        <option value="">-- انتخاب مشتری --</option>
+                        {% for c in customers %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 👤 فرم ورود مشتری جدید (تغییری نمی‌خواد) -->
                 <div class="collapse mt-3" id="newCustomerForm">
                     <div class="card card-body bg-light border">
                         <div class="row g-2">
@@ -159,6 +164,7 @@
                         </div>
                     </div>
                 </div>
+
 
 
                 <!-- طرح -->
