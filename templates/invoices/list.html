@@ -128,38 +128,38 @@
                 </div>
 
                 <!-- مشتری -->
+                <!-- 👤 انتخاب مشتری با Select2 -->
                 <div class="col-md-6">
                     <label class="form-label">مشتری</label>
-                    <!-- 🔹 دکمه افزودن مشتری جدید -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label mb-0">مشتری</label>
-                            <button type="button" class="btn btn-sm btn-outline-success"
-                                    data-bs-toggle="collapse" data-bs-target="#newCustomerForm">
-                                ➕ مشتری جدید
-                            </button>
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                data-bs-toggle="collapse" data-bs-target="#newCustomerForm">
+                            ➕ مشتری جدید
+                        </button>
                     </div>
-                    <select id="customerSelect" name="customer" class="form-select" style="width: 100%;">
-                        <option value="">جستجوی مشتری...</option>
-                    </select>
-                    <!-- 🔹 فرم افزودن مشتری جدید -->
-                    <div class="collapse mb-3" id="newCustomerForm">
-                        <div class="card card-body bg-light border">
-                            <h6 class="mb-3">افزودن مشتری جدید</h6>
-
-                            <div class="mb-2">
-                                <input type="text" name="new_customer_name" class="form-control" placeholder="نام مشتری">
+                    <!-- ✅ توجه: هیچ option اضافه‌ای نمی‌ذاریم، فقط Select2 خودش لود می‌کنه -->
+                    <select id="customerSelect" name="customer" class="form-select" style="width: 100%;"></select>
+                </div>                
+                <!-- 👤 فرم افزودن مشتری جدید -->
+                <div class="collapse mt-3" id="newCustomerForm">
+                    <div class="card card-body bg-light border">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label">نام مشتری جدید</label>
+                                <input type="text" class="form-control" name="new_customer_name" placeholder="مثلاً علی رضایی">
                             </div>
-                            <div class="mb-2">
-                                <input type="text" name="new_customer_phone" class="form-control" placeholder="شماره تماس">
+                            <div class="col-md-4">
+                                <label class="form-label">شماره تماس</label>
+                                <input type="text" class="form-control" name="new_customer_phone" placeholder="09xx...">
                             </div>
-                            <div class="mb-2">
-                                <input type="text" name="new_customer_address" class="form-control" placeholder="آدرس">
+                            <div class="col-md-4">
+                                <label class="form-label">آدرس</label>
+                                <input type="text" class="form-control" name="new_customer_address" placeholder="آدرس مشتری">
                             </div>
-
-                            <div class="form-text text-muted">پس از ذخیره، مشتری جدید به لیست اضافه می‌شود.</div>
                         </div>
                     </div>
                 </div>
+
 
                 <!-- طرح -->
                 <div class="col-md-6">
@@ -434,7 +434,7 @@
 <script>
     $(document).ready(function() {
         $('#customerSelect').select2({
-            placeholder: 'نام مشتری را وارد کنید...',
+            placeholder: 'نام مشتری را تایپ کنید...',
             allowClear: true,
             language: "fa",
             ajax: {
@@ -451,7 +451,5 @@
             }
         });
     });
-    </script>
-    
-    
+</script>    
 {% endblock extra_js %}
